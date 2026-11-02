@@ -1,11 +1,33 @@
 {
   "name": "git-sync",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows above the prompt whether the session's git repo has commits to push or pull, fetching in the background.",
-  "author": { "name": "Sawady", "url": "https://github.com/sawady" },
+  "author": {
+    "name": "Sawady",
+    "url": "https://github.com/sawady"
+  },
   "homepage": "https://github.com/sawady/sawady-claude-mods",
   "repository": "https://github.com/sawady/sawady-claude-mods",
   "license": "MIT",
-  "keywords": ["git", "sync", "push", "pull", "fetch"],
+  "keywords": [
+    "git",
+    "sync",
+    "push",
+    "pull",
+    "fetch"
+  ],
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Language of the band and toasts. auto follows the locale (LC_ALL, LC_MESSAGES, LANG); English when it is not Spanish.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "es"
+      ]
+    }
+  },
   "types": "./types/index.d.ts"
 }

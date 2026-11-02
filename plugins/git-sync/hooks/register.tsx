@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Sync } from '../types'
+import { STRINGS, langFromLocale } from './i18n'
+import type { Lang } from './i18n'
 
 const sync = atom({ plugin: 'git-sync', key: 'sync' } as const, null)
 const isFetching = atom({ plugin: 'git-sync', key: 'isFetching' } as const, false)
@@ -13,20 +15,22 @@ const GIT_ENV = { GIT_TERMINAL_PROMPT: '0' }
 async function git($: EngineInterface, cwd: string, args: string[], timeoutMs = 10_000) {
   try {
     const r = await $.process.run(['git', '-C', cwd, ...args], { env: GIT_ENV, timeoutMs })
-    return { ok: r.exitCode === 0, out: r.stdout.trim(), err: r.stderr.trim() }
+    return { ok: r.exitCode === 0, code: r.exitCode, out: r.stdout.trim(), err: r.stderr.trim() }
   } catch (err) {
-    return { ok: false, out: '', err: String(err) }
+    return { ok: false, code: -1, out: '', err: String(err) }
   }
 }
 
-function ago(ms: number) {
-  const min = Math.floor(ms / 60_000)
-  if (min < 1) return 'recién'
-  if (min < 60) return `hace ${min} min`
-  return `hace ${Math.floor(min / 60)} h`
-}
-
 let running: Promise<void> | null = null
+let lang: Lang = 'en'
+
+// `auto` follows the locale the session runs under (LC_ALL, LC_MESSAGES, LANG).
+async function resolveLang($: EngineInterface, setting: string) {
+  if (setting === 'en' || setting === 'es') return setting
+  const locale =
+    (await $.env.get('LC_ALL')) || (await $.env.get('LC_MESSAGES')) || (await $.env.get('LANG'))
+  return langFromLocale(locale)
+}
 
 // Reads branch/upstream and counts commits each way; with `fetch`, updates
 // the remote-tracking refs first so "to pull" reflects the real remote.
@@ -56,7 +60,7 @@ async function refresh($: EngineInterface, fetch: boolean) {
         fetchedAt = await $.clock.now()
         fetchError = null
       } else {
-        fetchError = f.err.split('\n').pop() || 'fetch falló'
+        fetchError = f.err.split('\n').pop() || `git exit ${f.code}`
       }
     }
 
@@ -72,7 +76,7 @@ async function refresh($: EngineInterface, fetch: boolean) {
     }
 
     if (behind > 0 && behind > (isSameBranch ? prev.behind : 0)) {
-      $.ui.toast(`git-sync: ${behind} commit${behind > 1 ? 's' : ''} para bajar de ${upstream}`)
+      $.ui.toast(STRINGS[lang].newToPull(behind, upstream ?? ''))
     }
 
     const next: Sync = { root, branch, upstream, ahead, behind, fetchedAt, fetchError }
@@ -83,9 +87,10 @@ async function refresh($: EngineInterface, fetch: boolean) {
   return running
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    lang = await resolveLang($, String(options.language ?? 'auto'))
     void refresh($, true)
     $.clock.every(FETCH_EVERY_MS, () => void refresh($, true))
     return started
@@ -108,25 +113,26 @@ export const register: Register = on => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const fetching = await read($, isFetching)
     const now = await $.clock.now()
+    const t = STRINGS[lang]
 
     return (
       <Box flexDirection="row" gap={1}>
         <Text color="magenta">⇅ {s.branch}</Text>
         {hasNoUpstream ? (
-          <Text color="yellow">sin upstream: nada publicado en el remoto</Text>
+          <Text color="yellow">{t.noUpstream}</Text>
         ) : (
           <>
             <Text dimColor>→ {s.upstream}</Text>
-            {s.ahead > 0 && <Text color="green">↑{s.ahead} para subir</Text>}
-            {s.behind > 0 && <Text color="yellow">↓{s.behind} para bajar</Text>}
+            {s.ahead > 0 && <Text color="green">{t.toPush(s.ahead)}</Text>}
+            {s.behind > 0 && <Text color="yellow">{t.toPull(s.behind)}</Text>}
             <Text dimColor>
               {fetching
-                ? '(fetch…)'
+                ? t.fetching
                 : s.fetchError
-                  ? `(fetch falló: ${s.fetchError})`
+                  ? t.fetchFailed(s.fetchError)
                   : s.fetchedAt
-                    ? `(fetch ${ago(now - s.fetchedAt)})`
-                    : '(sin fetch)'}
+                    ? t.fetchedAgo(now - s.fetchedAt)
+                    : t.notFetched}
             </Text>
             <Button key="fetch" label="fetch" plain onPress={() => void refresh($, true)} />
           </>

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Status line de Claude Code: carpeta, git, contexto, RAM, CPU, docker.
 # Recibe por stdin el JSON de la sesión que manda Claude Code.
+# Idioma: CLAUDE_STATUSLINE_LANG=auto|en|es (auto sigue LC_ALL/LC_MESSAGES/LANG).
 
 input=$(cat)
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline"
@@ -9,6 +10,17 @@ mkdir -p "$CACHE"
 C_RESET=$'\e[0m'; C_DIM=$'\e[2m'
 C_BLUE=$'\e[34m'; C_GREEN=$'\e[32m'; C_YELLOW=$'\e[33m'; C_RED=$'\e[31m'; C_CYAN=$'\e[36m'; C_MAGENTA=$'\e[35m'
 SEP=" ${C_DIM}│${C_RESET} "
+
+lang=${CLAUDE_STATUSLINE_LANG:-auto}
+if [[ $lang != en && $lang != es ]]; then
+  locale=${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}
+  [[ ${locale,,} == es* ]] && lang=es || lang=en
+fi
+if [[ $lang == es ]]; then
+  T_FREE=libre; T_USED=usado
+else
+  T_FREE=free; T_USED=used
+fi
 
 # Verde < warn, amarillo < crit, rojo >= crit
 level_color() { # valor warn crit
@@ -87,7 +99,7 @@ for pair in "5h:$rl_5h" "7d:$rl_7d"; do
   [[ -n $rl ]] && rl+="${C_DIM} · ${C_RESET}"
   rl+="$(level_color "$used" 70 90)${name} ${used}%${C_RESET}"
 done
-[[ -n $rl ]] && out+="${SEP}⏳ ${rl} ${C_DIM}usado${C_RESET}"
+[[ -n $rl ]] && out+="${SEP}⏳ ${rl} ${C_DIM}${T_USED}${C_RESET}"
 
 # --- RAM ---
 read -r mem_total mem_avail < <(awk '/^MemTotal/ {t=$2} /^MemAvailable/ {a=$2} END {print t, a}' /proc/meminfo)
@@ -95,7 +107,7 @@ if (( mem_total > 0 )); then
   mem_used_pct=$(( (mem_total - mem_avail) * 100 / mem_total ))
   mem_free_gb=$(awk -v a="$mem_avail" 'BEGIN {printf "%.1f", a/1048576}')
   mem_total_gb=$(awk -v t="$mem_total" 'BEGIN {printf "%.0f", t/1048576}')
-  out+="${SEP}$(level_color "$mem_used_pct" 70 90)💾 ${mem_free_gb}/${mem_total_gb}G libre${C_RESET}"
+  out+="${SEP}$(level_color "$mem_used_pct" 70 90)💾 ${mem_free_gb}/${mem_total_gb}G ${T_FREE}${C_RESET}"
 fi
 
 # --- CPU: diferencia contra la muestra anterior guardada en caché (sin sleep) ---

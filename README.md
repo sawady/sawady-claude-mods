@@ -7,14 +7,14 @@ Mods and tweaks for [Claude Code](https://claude.com/claude-code) that keep the 
 | [`git-sync`](#git-sync) | Claude Code mod (plugin) | Shows above the prompt whether the session's git repo has commits to push or pull, fetching in the background. |
 | [`statusline`](#statusline) | Status line script | One line with folder, git, context usage, model and effort, usage limits, RAM, CPU and Docker. |
 
-> The on-screen text is in Spanish (`para subir` = to push, `para bajar` = to pull, `libre` = free, `usado` = used).
+Both speak English and Spanish: by default they follow your locale (`LANG`), and you can pin either one.
 
 ## git-sync
 
 A band above the prompt that only appears when there is something to do:
 
 ```
-⇅ main → origin/main  ↑2 para subir  ↓3 para bajar  (fetch hace 2 min)  fetch
+⇅ main → origin/main  ↑2 to push  ↓3 to pull  (fetched 2 min ago)  fetch
 ```
 
 - Runs `git fetch` in the background when the session starts and every 3 minutes, so "to pull" reflects the real remote, not just the last time you fetched.
@@ -44,12 +44,24 @@ claude plugin install git-sync --marketplace sawady/sawady-claude-mods
 
 In the desktop app, where `/plugin` does not run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `sawady/sawady-claude-mods`, then **Add plugin**.
 
+### Language
+
+The `language` option is `auto` (default), `en` or `es`. `auto` uses Spanish when your locale (`LC_ALL`, `LC_MESSAGES` or `LANG`) is Spanish, English otherwise. Change it in `/config`, or in `~/.claude/settings.json`:
+
+```json
+{
+  "pluginConfigs": {
+    "git-sync@sawady-claude-mods": { "options": { "language": "es" } }
+  }
+}
+```
+
 ## statusline
 
 A [status line](https://docs.claude.com/en/docs/claude-code/statusline) for Claude Code:
 
 ```
-📁 ~/code/app │ 🌿 main ●3 ↑1 │ 🧠 ctx 42% · 427k/1M │ 🤖 Opus 5.5 · high │ ⏳ 5h 12% · 7d 30% usado │ 💾 16.6/20G libre │ ⚙️ CPU 18% (8 cores) │ 🐳 2 up
+📁 ~/code/app │ 🌿 main ●3 ↑1 │ 🧠 ctx 42% · 427k/1M │ 🤖 Opus 5.5 · high │ ⏳ 5h 12% · 7d 30% used │ 💾 16.6/20G free │ ⚙️ CPU 18% (8 cores) │ 🐳 2 up
 ```
 
 | Segment | Shows |
@@ -84,6 +96,14 @@ Then add this to `~/.claude/settings.json` (user scope, so it shows in every ses
     "padding": 0
   }
 }
+```
+
+### Language
+
+Set `CLAUDE_STATUSLINE_LANG` to `en` or `es` to pin the language; left unset (or `auto`) it follows your locale like `git-sync` does:
+
+```json
+"command": "CLAUDE_STATUSLINE_LANG=es ~/.claude/statusline.sh"
 ```
 
 ## Support

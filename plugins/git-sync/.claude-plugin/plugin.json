@@ -1,0 +1,11 @@
+{
+  "name": "git-sync",
+  "version": "0.1.0",
+  "description": "Shows above the prompt whether the session's git repo has commits to push or pull, fetching in the background.",
+  "author": { "name": "Sawady", "url": "https://github.com/sawady" },
+  "homepage": "https://github.com/sawady/sawady-claude-mods",
+  "repository": "https://github.com/sawady/sawady-claude-mods",
+  "license": "MIT",
+  "keywords": ["git", "sync", "push", "pull", "fetch"],
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "sawady-claude-mods",
+  "description": "Mods for Claude Code by Sawady: keep what matters in view while you work.",
+  "owner": {
+    "name": "Sawady",
+    "url": "https://github.com/sawady"
+  },
+  "plugins": [
+    {
+      "name": "git-sync",
+      "source": "./plugins/git-sync",
+      "description": "Shows above the prompt whether the session's git repo has commits to push or pull, fetching in the background."
+    }
+  ]
+}
